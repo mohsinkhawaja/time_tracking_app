@@ -29,7 +29,7 @@ class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
         child: Column(
           children: <Widget>[
             DropdownButtonFormField<String>(
-              value: projectId,
+              value: projectId.isNotEmpty ? projectId : null,
               onChanged: (String? newValue) {
                 setState(() {
                   projectId = newValue!;
@@ -49,7 +49,7 @@ class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
               }).toList(),
             ),
             DropdownButtonFormField<String>(
-              value: taskId,
+              value: taskId.isNotEmpty ? taskId : null,
               onChanged: (String? newValue) {
                 setState(() {
                   taskId = newValue!;

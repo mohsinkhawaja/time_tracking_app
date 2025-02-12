@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:time_tracking_app/provider/time_entry_provider.dart';
 import 'package:time_tracking_app/screens/add_timeentry_screen.dart';
+import 'package:time_tracking_app/screens/project_management_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -58,7 +59,9 @@ class _HomeScreenState extends State<HomeScreen>
               title: const Text("Projects"),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/manage_projects');
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  Navigator.pushNamed(context, '/manage_projects');
+                });
               },
             ),
             ListTile(
@@ -66,7 +69,9 @@ class _HomeScreenState extends State<HomeScreen>
               title: const Text("Tasks"),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(context, '/manage_tasks');
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  Navigator.pushNamed(context, '/manage_tasks');
+                });
               },
             ),
           ],
