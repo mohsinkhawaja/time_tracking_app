@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:time_tracking_app/models/time_entry.dart';
 import 'package:time_tracking_app/provider/time_entry_provider.dart';
 import 'package:time_tracking_app/screens/add_timeentry_screen.dart';
 import 'package:time_tracking_app/screens/project_management_screen.dart';
@@ -109,25 +110,65 @@ class _HomeScreenState extends State<HomeScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("No time entries yet!",
-                    style: TextStyle(color: Colors.grey[600], fontSize: 18)),
-                Text("Press + button to add your first entry",
-                    style: TextStyle(color: Colors.grey[600], fontSize: 18)),
+                Text(
+                  "No time entries yet!",
+                  style: TextStyle(color: Colors.grey[600], fontSize: 18),
+                ),
+                Text(
+                  "Press + button to add your first entry",
+                  style: TextStyle(color: Colors.grey[600], fontSize: 18),
+                ),
               ],
             ),
           );
         }
         return ListView.builder(
+          padding: const EdgeInsets.all(10),
           itemCount: provider.entries.length,
           itemBuilder: (context, index) {
             final entry = provider.entries[index];
-            return ListTile(
-              title: Text('${entry.projectId} - ${entry.totalTime} hours'),
-              subtitle:
-                  Text('${entry.date.toString()} - Notes: ${entry.notes}'),
-              onTap: () {
-                // This could open a detailed view or edit screen
-              },
+
+            return Card(
+              elevation: 3,
+              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: ListTile(
+                contentPadding: const EdgeInsets.all(12),
+                title: Text(
+                  '${entry.projectId} - ${entry.taskId}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.teal,
+                  ),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 5),
+                    Text(
+                      "Total Time: ${entry.totalTime} hours",
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    Text(
+                      "Date: ${entry.date.toString()}",
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    Text(
+                      "Note: ${entry.notes}",
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ],
+                ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () {
+                    provider.deleteTimeEntry(entry.id);
+                  },
+                ),
+              ),
             );
           },
         );
@@ -151,21 +192,60 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           );
         }
-        return ListView.builder(
-          itemCount: provider.entries.length,
-          itemBuilder: (context, index) {
-            final entry = provider.entries[index];
-            return ListTile(
-              title: Text('${entry.projectId} - ${entry.totalTime} hours'),
-              subtitle:
-                  Text('${entry.date.toString()} - Notes: ${entry.notes}'),
-              onTap: () {
-                // This could open a detailed view or edit screen
-              },
+
+        // Group entries by projectId
+        Map<String, List<TimeEntry>> groupedEntries = {};
+        for (var entry in provider.entries) {
+          groupedEntries.putIfAbsent(entry.projectId, () => []).add(entry);
+        }
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: groupedEntries.entries.map((project) {
+            return Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      project.key, // Project name
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueAccent,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: project.value.map((entry) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Text(
+                            "- Task ${entry.taskId}: ${entry.totalTime} hours (${_formatDate(entry.date)})",
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
             );
-          },
+          }).toList(),
         );
       },
     );
+  }
+
+// Helper function to format date
+  String _formatDate(DateTime date) {
+    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
   }
 }

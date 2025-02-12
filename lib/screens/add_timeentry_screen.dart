@@ -1,112 +1,158 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:time_tracking_app/models/time_entry.dart';
+import 'package:time_tracking_app/models/project_model.dart';
+import 'package:time_tracking_app/models/task_model.dart';
+import 'package:time_tracking_app/provider/project_task_provider.dart';
 import 'package:time_tracking_app/provider/time_entry_provider.dart';
+import 'package:time_tracking_app/models/time_entry.dart';
 
 class AddTimeEntryScreen extends StatefulWidget {
-  const AddTimeEntryScreen({super.key});
-
   @override
   _AddTimeEntryScreenState createState() => _AddTimeEntryScreenState();
 }
 
 class _AddTimeEntryScreenState extends State<AddTimeEntryScreen> {
   final _formKey = GlobalKey<FormState>();
-  String projectId = '';
-  String taskId = '';
-  double totalTime = 0.0;
-  DateTime date = DateTime.now();
+  String? selectedProjectId;
+  String? selectedTaskId;
   String notes = '';
+  DateTime date = DateTime.now();
+  double totalTime = 0;
 
   @override
   Widget build(BuildContext context) {
+    final projectTaskProvider = Provider.of<ProjectTaskProvider>(context);
+    final timeEntryProvider = Provider.of<TimeEntryProvider>(context);
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Add Time Entry'),
-      ),
-      body: Form(
-        key: _formKey,
-        child: Column(
-          children: <Widget>[
-            DropdownButtonFormField<String>(
-              value: projectId.isNotEmpty ? projectId : null,
-              onChanged: (String? newValue) {
-                setState(() {
-                  projectId = newValue!;
-                });
-              },
-              decoration: InputDecoration(labelText: 'Project'),
-              items: <String>[
-                'Project 1',
-                'Project 2',
-                'Project 3'
-              ] // Dummy project names
-                  .map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
+      appBar: AppBar(title: Text('Add Time Entry')),
+      body: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                // **Project Dropdown**
+                DropdownButtonFormField<String>(
+                  value: selectedProjectId,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedProjectId = newValue!;
+                    });
+                  },
+                  decoration: InputDecoration(labelText: 'Project'),
+                  items: projectTaskProvider.projects.isNotEmpty
+                      ? projectTaskProvider.projects.map((Project project) {
+                          return DropdownMenuItem<String>(
+                            value: project.id,
+                            child: Text(project.name),
+                          );
+                        }).toList()
+                      : [
+                          DropdownMenuItem(
+                            value: null,
+                            child: Text('No projects available'),
+                          )
+                        ],
+                ),
+
+                SizedBox(height: 16),
+
+                // **Task Dropdown**
+                DropdownButtonFormField<String>(
+                  value: selectedTaskId,
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedTaskId = newValue!;
+                    });
+                  },
+                  decoration: InputDecoration(labelText: 'Task'),
+                  items: projectTaskProvider.task.isNotEmpty
+                      ? projectTaskProvider.task.map((Task task) {
+                          return DropdownMenuItem<String>(
+                            value: task.id,
+                            child: Text(task.name),
+                          );
+                        }).toList()
+                      : [
+                          DropdownMenuItem(
+                            value: null,
+                            child: Text('No tasks available'),
+                          )
+                        ],
+                ),
+
+                SizedBox(height: 16),
+
+                // **Date Picker**
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Date: ${date.toLocal().toString().split(' ')[0]}',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    ElevatedButton(
+                      child: Text('Select Date'),
+                      onPressed: () async {
+                        DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: date,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2101),
+                        );
+                        if (picked != null && picked != date) {
+                          setState(() {
+                            date = picked;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: 16),
+
+                // **Notes Field**
+                TextFormField(
+                  decoration: InputDecoration(labelText: 'Notes'),
+                  onChanged: (value) {
+                    setState(() {
+                      notes = value;
+                    });
+                  },
+                ),
+
+                SizedBox(height: 16),
+
+                // **Save Button**
+                Center(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (_formKey.currentState!.validate()) {
+                        _formKey.currentState!.save();
+                        timeEntryProvider.addTimeEntry(
+                          TimeEntry(
+                            id: DateTime.now().toString(),
+                            projectId: selectedProjectId!,
+                            taskId: selectedTaskId!,
+                            totalTime: totalTime,
+                            date: date,
+                            notes: notes,
+                          ),
+                        );
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: Text('Save'),
+                  ),
+                ),
+              ],
             ),
-            DropdownButtonFormField<String>(
-              value: taskId.isNotEmpty ? taskId : null,
-              onChanged: (String? newValue) {
-                setState(() {
-                  taskId = newValue!;
-                });
-              },
-              decoration: InputDecoration(labelText: 'Task'),
-              items: <String>['Task 1', 'Task 2', 'Task 3'] // Dummy task names
-                  .map<DropdownMenuItem<String>>((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value),
-                );
-              }).toList(),
-            ),
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Total Time (hours)'),
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter total time';
-                }
-                if (double.tryParse(value) == null) {
-                  return 'Please enter a valid number';
-                }
-                return null;
-              },
-              onSaved: (value) => totalTime = double.parse(value!),
-            ),
-            TextFormField(
-              decoration: InputDecoration(labelText: 'Notes'),
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'Please enter some notes';
-                }
-                return null;
-              },
-              onSaved: (value) => notes = value!,
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (_formKey.currentState!.validate()) {
-                  _formKey.currentState!.save();
-                  Provider.of<TimeEntryProvider>(context, listen: false)
-                      .addTimeEntry(TimeEntry(
-                    id: DateTime.now().toString(), // Simple ID generation
-                    projectId: projectId,
-                    taskId: taskId,
-                    totalTime: totalTime,
-                    date: date,
-                    notes: notes,
-                  ));
-                  Navigator.pop(context);
-                }
-              },
-              child: Text('Save'),
-            )
-          ],
+          ),
         ),
       ),
     );
